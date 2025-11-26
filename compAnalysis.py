@@ -50,6 +50,7 @@ model = SolarEnergyInterpolator()
 def compute_optimal_pf_for_dataset(df):
 
     optimal_pfs = []
+    total_energy_error = []
     average = 1520.0
     i = 0
 
@@ -87,12 +88,16 @@ def compute_optimal_pf_for_dataset(df):
         df.at[curr_index, 'prediction'] = aligned
         nrmse = np.sqrt(np.mean(((pf_opt*aligned)-energy_list)**2))/np.mean(energy_list)
         df.at[curr_index, 'nrmse'] = nrmse
+        
+        tee_row = np.abs(np.sum(pf_opt*aligned) - np.sum(energy_list))/ np.sum(energy_list)
+        total_energy_error.append(tee_row)
                 
         if i % 100 == 0:
             print(i)
         i += 1
 
     df["optimal_pf"] = optimal_pfs
+    df['tee'] = total_energy_error
     return df
 # %% Run batch optimization
 
@@ -130,9 +135,3 @@ for patch, height in zip(patches, n):
 plt.grid()
 plt.show()
 
-
-# %%
-
-# for _,row in df.iterrows():
-#     arr1 = row['optimal_pf']*np.array(row['energy_list'])
-#     arr2 = np.array(row['energy_list'])*1e-3
