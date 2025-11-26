@@ -78,6 +78,8 @@ def plot_comparison(ym_list, actual, predicted):
 # Streamlit App
 # ----------------------------------------------------
 
+st.title("Model vs. Data: TS Analyzer")
+
 mode = st.radio(
     "Select input mode:",
     ["A: Select site directly", "B: Cascading filters"],
@@ -193,16 +195,27 @@ if st.button("Run Model & Fit PF"):
     # 4. Find optimal PF
     pf_opt = find_optimal_pf(degraded, energy_list)
 
-    st.success(f"Optimal PF found: **{pf_opt:.4f}**")
+    st.success(f"Performance Factor: **{pf_opt:.4f}**")
 
     # 5. Plot
     scaled_pred = pf_opt * degraded
     plot_comparison(ym_list, energy_list, scaled_pred)
+    
+    # Calculate total error
+    tee = np.abs(np.sum(scaled_pred) - np.sum(energy_list))/np.sum(energy_list)
 
     # Save state for PF override
     st.session_state["degraded"] = degraded
     st.session_state["energy_list"] = energy_list
     st.session_state["ym_list"] = ym_list
     st.session_state["pf_opt"] = pf_opt
-
+    
+    # Write output values
+    st.success(f"Aggregate Energy Error: {tee*100:.1f}%")
+    if tee < 0.2:
+    # Displays a green box with an "OK" icon
+        st.success('Status: OK')
+    else:
+    # Displays a red box with an "X" icon
+        st.error('Status: CHECK')
 
