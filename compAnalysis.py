@@ -135,3 +135,67 @@ for patch, height in zip(patches, n):
 plt.grid()
 plt.show()
 
+
+# %%
+
+def compute_multi_optimal_pf_for_dataset(df, month_end):
+
+    optimal_pfs = []
+    total_energy_error = []
+    average = 1520.0
+    i = 0
+
+    df['prediction'] = pd.Series([None] * len(df), dtype=object)
+    df['nrmse'] = pd.Series([None] * len(df), dtype=object)
+    
+    for _, row in df.iterrows():
+        
+        latitude = row['Latitude']
+        longitude = row['Longitude']
+        capacity = row['Capacity']
+        COD = row['COD']
+        
+        ym_list = row["ym_list"]
+        energy_list = np.array(row["energy_list"])/1e3
+        
+        # 1. Model prediction (12 months)
+        case1_vec, _, _, _, _ = model.get_solar_energy(latitude, longitude, capacity, COD, average)
+        model_12 = case1_vec
+    
+        # 2. Align to actual months (mapping by month number)
+        months = [int(m.split("-")[1]) for m in ym_list]
+        aligned = np.array([model_12[m - 1] for m in months])
+        
+        # 3. Apply degradation
+        degraded = apply_degradation(aligned, ym_list)
+
+        # 4. Find optimal PF
+        ind = month_end
+        
+        pf_opt = find_optimal_pf(degraded[:ind], energy_list[:ind])
+
+        optimal_pfs.append(pf_opt)
+        
+        #  Save prediction and error values
+        curr_index = row.name
+        df.at[curr_index, 'prediction'] = aligned
+        nrmse = np.sqrt(np.mean(((pf_opt*aligned)-energy_list)**2))/np.mean(energy_list)
+        df.at[curr_index, 'nrmse'] = nrmse
+        
+        tee_row = np.abs(np.sum(pf_opt*aligned) - np.sum(energy_list))/ np.sum(energy_list)
+        total_energy_error.append(tee_row)
+                
+        if i % 100 == 0:
+            print(i)
+        i += 1
+
+    df["optimal_pf"] = optimal_pfs
+    df['tee'] = total_energy_error
+    return df
+
+
+#%% 
+month_end = 3
+df = df[df['num_readings'] > month_end]
+df = compute_multi_optimal_pf_for_dataset(df, month_end)
+# %%
