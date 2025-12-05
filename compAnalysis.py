@@ -187,6 +187,7 @@ def compute_multi_optimal_pf_for_dataset(df, month_end):
                 
         if i % 100 == 0:
             print(i)
+            
         i += 1
 
     df["optimal_pf"] = optimal_pfs
@@ -195,7 +196,44 @@ def compute_multi_optimal_pf_for_dataset(df, month_end):
 
 
 #%% 
-month_end = 3
+month_end = 12
 df = df[df['num_readings'] > month_end]
 df = compute_multi_optimal_pf_for_dataset(df, month_end)
+
+print("NRSME:",round(df['nrmse'].min(),3), round(df['nrmse'].max(),3), round(df['nrmse'].mean(),3))
+print("TEE:",round(df['tee'].min(),3), round(df['tee'].max(),3), round(df['tee'].mean(),3))
+# %%
+
+num_data_vec = [3,4,5,6,9,12]
+
+dyn_min_vec = []
+dyn_max_vec = []
+dyn_mean_vec = [] 
+
+tee_min_vec = []
+tee_max_vec = []
+tee_mean_vec = []
+
+for n in num_data_vec:
+    df = df[df['num_readings'] > n]
+    df = compute_multi_optimal_pf_for_dataset(df, n)
+    
+    dyn_min_vec.append(100*round(df['nrmse'].min(),3))
+    dyn_max_vec.append(100*round(df['nrmse'].max(),3))
+    dyn_mean_vec.append(100*round(df['nrmse'].mean(),3))
+    
+    tee_min_vec.append(100*round(df['tee'].min(),3))
+    tee_max_vec.append(100*round(df['tee'].max(),3))
+    tee_mean_vec.append(100*round(df['tee'].mean(),3))
+
+# Optimal PF values    
+dyn_min_vec.append(0)
+dyn_max_vec.append(100*1.546)
+dyn_mean_vec.append(100*0.278)
+
+tee_min_vec.append(0)
+tee_max_vec.append(100*0.119)
+tee_mean_vec.append(100*0.012)
+
+    
 # %%
