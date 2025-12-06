@@ -236,4 +236,39 @@ tee_max_vec.append(100*0.119)
 tee_mean_vec.append(100*0.012)
 
     
-# %%
+# %% Visualizing the spread of the NRMSE and TEE values over the PF values 
+
+# Re-run code to find data for optimal PF values
+df = pd.read_pickle('main.pkl')
+df = compute_optimal_pf_for_dataset(df)
+# Sort by a thrshold
+df = df[df['optimal_pf'] < 1.2]
+
+# For Dynamic Error (nrmse)
+import matplotlib.pyplot as plt
+# Using the hexbin function to create hexagonal bins (common for 2D histograms)
+plt.figure(figsize=(8, 6))
+plt.hexbin(df['optimal_pf'], 100*df['tee'], 
+           gridsize=30,       # Number of hexagonal bins across the plot
+           cmap='inferno',    # Colormap
+           mincnt=1)          # Only show bins with at least one point
+plt.colorbar(label='Count in Bin')
+plt.xlabel('PF', fontsize = 14)
+plt.ylabel('Dynamic Error [%]', fontsize = 14)
+plt.tick_params(axis='both', labelsize = 12)
+plt.show()
+
+# For TEE (cumulative error)
+import matplotlib.pyplot as plt
+# Using the hexbin function to create hexagonal bins (common for 2D histograms)
+plt.figure(figsize=(8, 6))
+plt.hexbin(df['optimal_pf'], 100*df['tee'], 
+           gridsize=30,       # Number of hexagonal bins across the plot
+           cmap='inferno',    # Colormap
+           mincnt=1)          # Only show bins with at least one point
+plt.colorbar(label='Count in Bin')
+plt.xlabel('PF', fontsize = 14)
+plt.ylabel('Cummulative Error [%]', fontsize = 14)
+plt.tick_params(axis='both', labelsize = 12)
+plt.show()
+
