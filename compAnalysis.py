@@ -272,3 +272,5 @@ plt.ylabel('Cummulative Error [%]', fontsize = 14)
 plt.tick_params(axis='both', labelsize = 12)
 plt.show()
 
+
+# %%
