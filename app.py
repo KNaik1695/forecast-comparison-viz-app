@@ -8,7 +8,8 @@ from GSA_Interpolator import SolarEnergyInterpolator
 
 #%% Load data
 
-df = pd.read_pickle('main.pkl')
+# df = pd.read_pickle('main.pkl')
+df = pd.read_pickle('main_wCAResults.pkl')
 
 
 #%%
@@ -51,27 +52,79 @@ def plot_comparison(ym_list, actual, predicted):
     # Use dark background style
     plt.style.use("dark_background")
 
-    fig, ax = plt.subplots(figsize=(10, 4))
+    fig, (ax1, ax2) = plt.subplots(2, 1, layout="constrained")
 
     # Convert to readable month labels
     dates = pd.to_datetime(ym_list)
     month_labels = dates.strftime("%b\n%Y")  # e.g. Jan\n2024
 
+    # Plot 1: Timeseries of actual vs predicted
     # Plot actual vs predicted
-    ax.plot(month_labels, actual, label="Actual Energy", linewidth=2, marker='*', markersize=10)
-    ax.plot(month_labels, predicted, label="Model (scaled)", linestyle="--", linewidth=2, marker='o', markersize=10)
+    ax1.plot(month_labels, actual, label="Actual Energy", linewidth=2, marker='*', markersize=10)
+    ax1.plot(month_labels, predicted, label="Model (scaled)", linestyle="--", linewidth=2, marker='o', markersize=10)
 
     # Axis labels & title
-    ax.set_xlabel("Month", fontsize=14)
-    ax.set_ylabel("Energy (kWh)", fontsize=14)
+    ax1.set_xlabel("Month", fontsize=12)
+    ax1.set_ylabel("Energy (kWh)", fontsize=12)
 
     # Tick labels
-    ax.tick_params(axis='both', labelsize=12)
+    ax1.tick_params(axis='both', labelsize=10)
 
     # Grid & legend
-    ax.grid(True, alpha=0.3)
-    ax.legend(fontsize=12)
+    ax1.grid(True, alpha=0.3)
+    ax1.legend(fontsize=10)
+    
+    # Plot 2: Cummulative Energy of actual vs predicted
+    actual_cum = np.cumsum(actual)
+    predicted_cum = np.cumsum(predicted)
+    
+    ax2.plot(month_labels, actual_cum, label="Actual Energy", linewidth=2, marker='*', markersize=10)
+    ax2.plot(month_labels, predicted_cum, label="Model (scaled)", linestyle="--", linewidth=2, marker='o', markersize=10)
 
+    # Axis labels & title
+    ax2.set_xlabel("Month", fontsize=12)
+    ax2.set_ylabel("Cummulative Energy (kWh)", fontsize=12)
+
+    # Tick labels
+    ax2.tick_params(axis='both', labelsize=10)
+
+    # Grid & legend
+    ax2.grid(True, alpha=0.3)
+    ax2.legend(fontsize=10)
+
+    st.pyplot(fig)
+    
+def plot_portfolio(pf_opt, tee, df):
+
+    # Use dark background style
+    plt.style.use("dark_background")
+
+    fig, (ax1, ax2) = plt.subplots(2, 1, layout="constrained")
+    
+    # Constrain DF
+    df = df[df['optimal_pf'] < 2]
+
+    # Plot 1: Optimal PF
+    n, bins, patches = ax1.hist(df['optimal_pf'], bins=50, edgecolor='black', alpha=0.7, label="Portfolio Distribution")
+    ax1.vlines(x = pf_opt, ymin=0, ymax=max(n),linestyles='--', linewidth = 2.5, label="Current Value")
+
+    # Axis labels & title
+    ax1.set_xlabel("PF = Actual/Model's Ideal", fontsize=12)
+    ax1.set_ylabel("Count", fontsize=12)
+    ax1.grid(True, alpha=0.3)
+    ax1.legend(fontsize=10)
+
+    # Plot 2: TEE
+
+    n, bins, patches = ax2.hist(100*df['tee'], bins=50, edgecolor='black', alpha=0.7, label="Portfolio Distribution")
+    ax2.vlines(x = tee*100, ymin=0, ymax=max(n),linestyles='--', linewidth = 2.5, label="Current Value")
+
+    # Axis labels & title
+    ax2.set_xlabel("Cummulative Energy Error [%]", fontsize=12)
+    ax2.set_ylabel("Count", fontsize=12)
+    ax2.grid(True, alpha=0.3)
+    ax2.legend(fontsize=10)
+    
     st.pyplot(fig)
 
 # ----------------------------------------------------
@@ -199,8 +252,10 @@ if st.button("Run Model & Fit PF"):
 
     # 5. Plot
     scaled_pred = pf_opt * degraded
-    plot_comparison(ym_list, energy_list, scaled_pred)
     
+    st.write("Model vs Data Comparison")
+    plot_comparison(ym_list, energy_list, scaled_pred)
+        
     # Calculate total error
     tee = np.abs(np.sum(scaled_pred) - np.sum(energy_list))/np.sum(energy_list)
 
@@ -218,4 +273,8 @@ if st.button("Run Model & Fit PF"):
     else:
     # Displays a red box with an "X" icon
         st.error('Status: CHECK')
+    
+    st.write("Compare values with Portfolio")    
+    # Compare current values with portfolio    
+    plot_portfolio(pf_opt, tee, df)
 
