@@ -50,7 +50,7 @@ def find_optimal_pf(model_values, actual_values):
 def plot_comparison(ym_list, actual, predicted):
 
     # Use dark background style
-    plt.style.use("dark_background")
+    plt.style.use("seaborn-v0_8-whitegrid")
 
     fig, (ax1, ax2) = plt.subplots(2, 1, layout="constrained")
 
@@ -60,8 +60,9 @@ def plot_comparison(ym_list, actual, predicted):
 
     # Plot 1: Timeseries of actual vs predicted
     # Plot actual vs predicted
-    ax1.plot(month_labels, actual, label="Actual Energy", linewidth=2, marker='*', markersize=10)
-    ax1.plot(month_labels, predicted, label="Model (scaled)", linestyle="--", linewidth=2, marker='o', markersize=10)
+    ax1.plot(month_labels, actual, label="Actual Energy", linewidth=2, marker='*', markersize=7)
+    ax1.plot(month_labels, predicted, label="Model (scaled)", linestyle="--", linewidth=2, marker='o', markersize=7)
+    ax1.fill_between(month_labels, 0.75*predicted, 1.25*predicted, label="Expected range", alpha=0.3, color="orange")
 
     # Axis labels & title
     ax1.set_xlabel("Month", fontsize=12)
@@ -69,6 +70,7 @@ def plot_comparison(ym_list, actual, predicted):
 
     # Tick labels
     ax1.tick_params(axis='both', labelsize=10)
+    ax1.set_ylim(0, 1.2*max(actual))
 
     # Grid & legend
     ax1.grid(True, alpha=0.3)
@@ -78,9 +80,10 @@ def plot_comparison(ym_list, actual, predicted):
     actual_cum = np.cumsum(actual)
     predicted_cum = np.cumsum(predicted)
     
-    ax2.plot(month_labels, actual_cum, label="Actual Energy", linewidth=2, marker='*', markersize=10)
-    ax2.plot(month_labels, predicted_cum, label="Model (scaled)", linestyle="--", linewidth=2, marker='o', markersize=10)
-
+    ax2.plot(month_labels, actual_cum, label="Actual Energy", linewidth=2, marker='*', markersize=7)
+    ax2.plot(month_labels, predicted_cum, label="Model (scaled)", linestyle="--", linewidth=2, marker='o', markersize=7)
+    ax2.fill_between(month_labels, 0.9*predicted_cum, 1.1*predicted_cum, label="Expected range", alpha=0.3, color="orange")
+        
     # Axis labels & title
     ax2.set_xlabel("Month", fontsize=12)
     ax2.set_ylabel("Cummulative Energy (kWh)", fontsize=12)
@@ -97,7 +100,7 @@ def plot_comparison(ym_list, actual, predicted):
 def plot_portfolio(pf_opt, tee, df):
 
     # Use dark background style
-    plt.style.use("dark_background")
+    plt.style.use("seaborn-v0_8-whitegrid")
 
     fig, (ax1, ax2) = plt.subplots(2, 1, layout="constrained")
     
@@ -153,7 +156,7 @@ if mode == "A: Select site directly":
         help="Type to search"
     )
 
-    st.success(f"Selected site: {selected_site}")
+    # st.success(f"Selected site: {selected_site}")
 
 
 # ===================================================
@@ -209,8 +212,29 @@ if mode == "B: Cascading filters":
     
 site_row = df[df["SiteName"] == selected_site].iloc[0]
 
-st.write("### Selected Site Summary")
-st.write(site_row[['Developer','COD','Latitude','Longitude','Country','Capacity']])
+st.write(f"### Selected Site: {selected_site}")
+
+left_side_cols = ['Developer','COD','Country']
+right_side_cols = ['Latitude','Longitude','Capacity']
+
+# 2. Create your columns
+col1, col2 = st.columns(2)
+
+# 3. Display the left side
+with col1:
+    for name in left_side_cols:
+        st.markdown(f"**{name}:** {site_row[name]}")
+
+# 4. Display the right side
+with col2:
+    for name in right_side_cols:
+        val = site_row[name]
+        if name == 'Capacity':
+            st.markdown(f"**{name}:** {val:.1f}")
+        else:   
+            st.markdown(f"**{name}:** {val:.4f}")
+    
+# st.write(site_row[['Developer','COD','Latitude','Longitude','Country','Capacity']])
 
 average = st.number_input("PT Static Average (kWh/yr)", value=1520.0, step=0.1)
 
@@ -224,6 +248,16 @@ model = SolarEnergyInterpolator()
 # ----------------------------------------------------
 # Run model + degradation + PF estimation
 # ----------------------------------------------------
+
+st.markdown("""
+    <style>
+    div.stButton > button:first-child {
+        background-color: #04364e; /* Green background */
+        color: white;              /* White text */
+        border-radius: 10px;       /* Rounded corners */
+    }
+    </style>
+""", unsafe_allow_html=True)
 
 
 if st.button("Run Model & Fit PF"):
@@ -266,13 +300,19 @@ if st.button("Run Model & Fit PF"):
     st.session_state["pf_opt"] = pf_opt
     
     # Write output values
-    st.success(f"Aggregate Energy Error: {tee*100:.1f}%")
-    if tee < 0.2:
-    # Displays a green box with an "OK" icon
-        st.success('Status: OK')
-    else:
-    # Displays a red box with an "X" icon
-        st.error('Status: CHECK')
+    
+    left, right = st.columns(2)
+    
+    with left:
+        st.success(f"Aggregate Energy Error: **{tee*100:.1f}%**")
+    
+    with right:
+        if tee < 0.2:
+        # Displays a green box with an "OK" icon
+            st.success('Status: **OK**')
+        else:
+        # Displays a red box with an "X" icon
+            st.error('Status: **CHECK**')
     
     st.write("Compare values with Portfolio")    
     # Compare current values with portfolio    
